@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
@@ -45,8 +46,11 @@ func main() {
 		s.BroadcastAll(message, id)
 	})
 
-	if err := http.ListenAndServe(":"+port, r); err != nil {
-		panic(err)
+	if port == ""{
+		port = "9000"
 	}
+
+
+	log.Fatal(http.ListenAndServe(":"+port, r))
 
 }
