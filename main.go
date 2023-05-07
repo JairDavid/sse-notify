@@ -26,6 +26,8 @@ func main() {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
+	port := os.Getenv("PORT")
+
 	r.HandleFunc("/notification", s.Handler)
 	r.Post("/message", func(writer http.ResponseWriter, request *http.Request) {
 		var message string
@@ -43,7 +45,7 @@ func main() {
 		s.BroadcastAll(message, id)
 	})
 
-	if err := http.ListenAndServe(":9000", r); err != nil {
+	if err := http.ListenAndServe(port, r); err != nil {
 		panic(err)
 	}
 
