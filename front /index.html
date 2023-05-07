@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" data-theme="cupcake">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link
+            href="https://cdn.jsdelivr.net/npm/daisyui@2.6.0/dist/full.css"
+            rel="stylesheet"
+            type="text/css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Server-Sent-Events </title>
+</head>
+<body>
+
+<div class="navbar bg-blue-200">
+    <div class="navbar-start">
+        <div class="tooltip tooltip-right" data-tip="Copy">
+            <a class="btn btn-ghost normal-case text-md" id="id" onclick="copyUUID()">Your ID: </a>
+        </div>
+    </div>
+    <div class="navbar-center">
+    </div>
+    <div class="navbar-end">
+        <button class="btn btn-ghost btn-circle">
+            <div class="indicator">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                <span class="badge badge-xs badge-primary indicator-item"></span>
+            </div>
+        </button>
+    </div>
+</div>
+
+<div id="generator" class="flex">
+</div>
+
+<div class="">
+    <div class="grid justify-items-center pt-10">
+        <div class="max-w-lg">
+            <h1 class="text-5xl font-bold text-center">Notification System</h1>
+            <p class="py-6 text-center">This app works by streaming server-sent events in real time instead of using websockets, server-sent events are unidirectional, which means we can receive data from server side only.</p>
+        </div>
+
+        <div class="form-control w-full max-w-xs">
+            <input type="text" id="message" placeholder="Send a super notification to all users" class="input input-bordered w-full max-w-xs" />
+            <button class="btn btn-primary mt-3" onclick="SendNotification()">Send your notification</button>
+        </div>
+    </div>
+</div>
+
+</body>
+<script>
+    let lut = []; for (var i=0; i<256; i++) { lut[i] = (i<16?'0':'')+(i).toString(16); }
+    function generateUUID()
+    {
+        var d0 = Math.random()*0xffffffff|0;
+        var d1 = Math.random()*0xffffffff|0;
+        var d2 = Math.random()*0xffffffff|0;
+        var d3 = Math.random()*0xffffffff|0;
+        return lut[d0&0xff]+lut[d0>>8&0xff]+lut[d0>>16&0xff]+lut[d0>>24&0xff]+'-'+
+            lut[d1&0xff]+lut[d1>>8&0xff]+'-'+lut[d1>>16&0x0f|0x40]+lut[d1>>24&0xff]+'-'+
+            lut[d2&0x3f|0x80]+lut[d2>>8&0xff]+'-'+lut[d2>>16&0xff]+lut[d2>>24&0xff]+
+            lut[d3&0xff]+lut[d3>>8&0xff]+lut[d3>>16&0xff]+lut[d3>>24&0xff];
+    }
+    let uuid = generateUUID()
+    let ID = document.getElementById("id")
+    ID.innerText ="Your ID: "+uuid
+
+    let sse = new EventSource(`http://localhost:9000/notification?id=${uuid}`)
+    sse.addEventListener("open", ()=>{
+        console.log("Listening streaming")
+    })
+
+    sse.addEventListener("message", (event)=>{
+        console.log(event.data)
+       let generator = document.getElementById("generator")
+        generator.innerHTML = `
+            <input type="checkbox" checked id="my-modal-3" class="modal-toggle" />
+            <div class="modal">
+                <div class="modal-box relative">
+                    <label for="my-modal-3" class="btn btn-sm btn-circle absolute right-2 top-2">✕</label>
+                    <h3 class="text-lg font-bold">Random internet user says:</h3>
+                    <p class="py-4">${event.data}</p>
+                </div>
+            </div>
+        `
+
+    })
+</script>
+
+<script>
+    function copyUUID (){
+        let ID = document.getElementById("id").innerHTML
+        try {
+            navigator.clipboard.writeText(ID.replace("Your ID: ", ""));
+            console.log('Content copied to clipboard');
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+        }
+    }
+
+    function SendNotification(){
+        let message = document.getElementById("message").value
+        let ID = document.getElementById("id").innerHTML
+        let generator = document.getElementById("generator")
+        if( message === ""){
+            generator.innerHTML = `
+            <div class="alert alert-warning shadow-lg mx-10 my-5">
+                <div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <span>Warning: You need to write a message first!</span>
+                </div>
+            </div>`
+            setTimeout(()=>{
+                generator.innerHTML =""
+            }, 4000)
+            return
+        }
+
+        generator.innerHTML =""
+        console.log(message.toString())
+        fetch(`http://localhost:9000/message?id=${ID.replace("Your ID: ", "")}`,{
+            method: "POST",
+            body: `"${message}"`,
+            headers:{
+                "Content-Type":'application/json'
+            }
+        })
+            .then((res)=>res.json())
+            .then((res)=>{
+                console.log(res)
+            })
+            .catch((err)=>{
+                console.log(err)
+            })
+    }
+</script>
+</html>
