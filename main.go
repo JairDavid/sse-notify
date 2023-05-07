@@ -45,7 +45,7 @@ func main() {
 		s.BroadcastAll(message, id)
 	})
 
-	if err := http.ListenAndServe(port, r); err != nil {
+	if err := http.ListenAndServe(":"+port, r); err != nil {
 		panic(err)
 	}
 
