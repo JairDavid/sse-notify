@@ -68,7 +68,7 @@
     let ID = document.getElementById("id")
     ID.innerText ="Your ID: "+uuid
 
-    let sse = new EventSource(`http://localhost:9000/notification?id=${uuid}`)
+    let sse = new EventSource(`https://sse-notify-production.up.railway.app/notification?id=${uuid}`)
     sse.addEventListener("open", ()=>{
         console.log("Listening streaming")
     })
@@ -121,7 +121,7 @@
 
         generator.innerHTML =""
         console.log(message.toString())
-        fetch(`http://localhost:9000/message?id=${ID.replace("Your ID: ", "")}`,{
+        fetch(`https://sse-notify-production.up.railway.app/message?id=${ID.replace("Your ID: ", "")}`,{
             method: "POST",
             body: `"${message}"`,
             headers:{
